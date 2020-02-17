@@ -1,13 +1,13 @@
 # LK_toolbox (a.k.a gipseeg)
 Personal Matlab Toolbox written for EEG processing and classification during the begginning of my thesis @GIPSA-lab (2013-2015). Not well maintained but released for educational purpose.
 
-It is mostly unfinished job and module of my work has been release into other repositories in more advanced state. After 2015, the code was maintained in a different repo.
+It is mostly unfinished job. Modules of my work has been released into other repositories in more advanced state. After 2015, the code was maintained in a different (private) repo.
 
 If you found this repo and plan to use it (or part of it), please read below before.
 
 ### few words
 
-Because I came from signal processing, I wasn't fond of the complex eeglab/fieldtrip structures with never ending attributes and parameters. So I tried to build the "minimum-viable" structure to process and classify EEG on my own and it was probably not better than EEG/fieldtrip structure anyway. While I tried to maintain this code at some point, the effort were dropped because only few engineers and PhD students were using it and I decided to share only piece of cleaner code in different repo. I finally, after many years of this code roting on my computer, decided to upload the ugly monster. Let say it is a monument of "how to not start my thesis".
+Because I came from signal processing, I wasn't fond of the complex eeglab/fieldtrip structures with never ending attributes and parameters. So I tried to build the "minimum-viable" structure to process and classify EEG on my own and it was probably not better than EEG/fieldtrip structure anyway. While I tried to maintain this code at some point, the effort were dropped because only few engineers and PhD students were using it and I decided to share only piece of cleaner code in different repo. I finally, after many years of this code roting on my computer, decided to upload the ugly monster. Let say it is a monument of "how to not start a thesis".
 
 ### Install
 to install LK TOOLBOX and related functions please, launch the script "installer" (run in matlab)
