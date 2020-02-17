@@ -9,6 +9,10 @@ If you found this repo and plan to use it (or part of it), please read below bef
 
 Because I came from signal processing, I wasn't fond of the complex eeglab/fieldtrip structures with never ending attributes and parameters. So I tried to build the "minimum-viable" structure to process and classify EEG on my own and it was probably not better than EEG/fieldtrip structure anyway. While I tried to maintain this code at some point, the effort were dropped because only few engineers and PhD students were using it and I decided to share only piece of cleaner code in different repo. I finally, after many years of this code roting on my computer, decided to upload the ugly monster. Let say it is a monument of "how to not start my thesis".
 
+### Install
+to install LK TOOLBOX and related functions please, launch the script "installer" (run in matlab)
+thus you'll have acces to all the functions and script. For some functions, external requirements be needed (see external section below)
+
 # The toolbox
 
 ## The content
@@ -44,18 +48,18 @@ I give some of the code that is mandatory for running my toolbox. But I'll proba
 While I tried that most of the funtion can work directly with matrix (and not complicated structures), it may be easier to use to encapsulate your data into a structure, e.g. for using `preprocessingEEG` or `plotEEG`.
 
 
-DATA STRUCTURES update : 19/10/2015
-Dimensions :
-variable - name - (scale) - Fieldtrip : dimord (variable name)
-t - samples (T) FT: time (time)
-n - channels (N) FT: chan (label)
-k - trials (K) FT: rpt (trial)
-m - subjects (M) FT: subj (‘’)
-f - frequencies (F) FT: freq (freq)
-z - classes (Z) FT: rpt (trialinfo)
-c - conditions (C) FT: rpt (trialinfo)
-constrains T>N, T>M, K>>M
-EEG is a structure with : (GIPSEEG a.k.a LK_Toolbox)
+### Dimensions and nomenclature :
+- variable - name - (scale) - Fieldtrip : dimord (variable name)
+- t - samples (T) FT: time (time)
+- n - channels (N) FT: chan (label)
+- k - trials (K) FT: rpt (trial)
+- m - subjects (M) FT: subj (‘’)
+- f - frequencies (F) FT: freq (freq)
+- z - classes (Z) FT: rpt (trialinfo)
+- c - conditions (C) FT: rpt (trialinfo)
+_constrains T>N, T>M, K>>M_
+
+
 | FIELDNAME       | SIZE/TYPE                   | DESCRIPTION                                                                           | fieldtrip  | eeglab  | autre |
 |-----------------|-----------------------------|---------------------------------------------------------------------------------------|------------|---------|-------|
 | Fs              | scalar                      | sample rate in Hz                                                                     | fsample    | ‘srate’ | fs    |
@@ -73,7 +77,7 @@ ACSTPoptions is a structure with
 - Mask_Electrodes: vector of the selectionned electrodes. Usefull for the automatic subspace selection (BestPz) and latency correction (Latency).
 - Mask_Time: vector of the selectionned sample. Usefull for the automatic subspace selection (BestPz) and latency correction (Latency).
 - MaxIterLatency*: scalar, the maximum iteration allowed to compute the latency correction. Default: 10.
-- SubspaceDim*: vector, containing all the subspace dimension (<nb electrodes) to test in descent order. By default, it is equal to (nb_channels:-1:(nb_channels/2))
+- SubspaceDim*: vector, containing all the subspace dimension (nb electrodes) to test in descent order. By default, it is equal to (nb_channels:-1:(nb_channels/2))
 - computeClassLat*: vector, containing all the class tag in which you want to compute the latency correction. By default, it computes it for all classes but it could be long (for instance you can skip the non-target).
 - Weights*: Default: true.
                  option1(given) [nb epochs x1] vector, containing the weights for each
@@ -85,16 +89,24 @@ ACSTPoptions is a structure with
                   average and the ACSTP should be display at the end. Default: true.
 
 ACSTPstruct is a structure with
+
              EA: the ensemble average before ACSTP
+
          EAcstp: the ensemble average corrected with latencies, weighted
                   and filtered + with the effect of overlapping
                   correction
+
     As Bs Bt At: such as Xhat(:,:,k)=As{indClass}*Bs{indClass}'*W(k)*X(:,:,k)*Bt{indClass}*At{indClass}'
                   Each filter is a cell containing a matrix filter for
                   each class
+
           Class: The tag and the order in which the filter are sorted
+
          BestPz: Orders of the best subspace for the ACSTP for the given
                  Class
+
         Weights: [nb epochs x1] the weights of each epoch
+
         Latency: [nb epochs x1] the corrected offset of each epoch
+
      Epoch_size: scalar, the length of the epoch window (in samples)
