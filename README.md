@@ -9,6 +9,7 @@ If you found this repo and plan to use it (or part of it), please read below bef
 
 Because I came from signal processing, I wasn't fond of the complex eeglab/fieldtrip structures with never ending attributes and parameters. So I tried to build the "minimum-viable" structure to process and classify EEG on my own and it was probably not better than EEG/fieldtrip structure anyway. While I tried to maintain this code at some point, the effort were dropped because only few engineers and PhD students were using it and I decided to share only piece of cleaner code in different repo. I finally, after many years of this code roting on my computer, decided to upload the ugly monster. Let say it is a monument of "how to not start a thesis".
 
+
 ### Install
 to install LK TOOLBOX and related functions please, launch the script "installer" (run in matlab)
 thus you'll have acces to all the functions and script. For some functions, external requirements be needed (see external section below)
@@ -118,3 +119,11 @@ ACSTPstruct is a structure with
      Epoch_size: scalar, the length of the epoch window (in samples)
 
 ```
+
+# associated publications
+- L. Korczowski, M. Congedo and C. Jutten, "Single-trial classification of multi-user P300-based Brain-Computer Interface using riemannian geometry," 2015 37th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC), Milan, 2015, pp. 1769-1772.
+-  Louis Korczowski. Méthodes pour l'électroencéphalographie multi-sujet et application aux interfaces cerveau-ordinateur. Traitement du signal et de l'image [eess.SP]. Université Grenoble Alpes, 2018. Français. ⟨NNT : 2018GREAT078⟩. ⟨tel-01961434v4⟩
+-  Marco Congedo, Louis Korczowski, Arnaud Delorme, Fernando Lopes da Silva. Spatio-temporal common pattern: A companion method for ERP analysis in the time domain. Journal of Neuroscience Methods, Elsevier, 2016, 267, pp.74-88. ⟨10.1016/j.jneumeth.2016.04.008⟩. ⟨hal-01343026⟩
+-  Louis Korczowski, Florent Bouchard, Christian Jutten, Marco Congedo. Mining the Bilinear Structure of Data with Approximate Joint Diagonalization. 24th European Signal Processing Conference (EUSIPCO 2016), EURASIP, Aug 2016, Budapest, Hungary. pp.667-671. ⟨hal-01357245⟩
+-  Florent Bouchard, Louis Korczowski, Jérôme Malick, Marco Congedo. Approximate Joint Diagonalization within the Riemannian Geometry Framework. 24th European Signal Processing Conference (EUSIPCO 2016), Aug 2016, Budapest, Hungary. pp.210-214, ⟨10.1109/EUSIPCO.2016.7760240⟩. ⟨hal-01370052
+- Louis Korczowski, Alexandre Barachant, Anton Andreev, Christian Jutten, Marco Congedo. ”BrainInvaders 2” :  an open source Plug & Play multi-user BCI videogame.   6th International Brain-Computer Interface Meeting (BCI Meeting 2016), BCI Society, May 2016, Pacific Grove, CA, UnitedStates. pp.10.3217/978-3-85125-467-9, ￿10.3217/978-3-85125-467-9-224￿. ￿hal-
