@@ -1,0 +1,458 @@
+%% P300 analysis
+tic
+clear all
+close all
+Directory= 'D:\data\Hyperscanning\BI-multiplayers\Groups\'
+load([Directory 'Rejected_parts\Artefacts.mat'])
+load([Directory 'full_EEG.mat'])
+load( [Directory 'results_AUC_STATS_all_VS_intra_vsMAPPING_P0_25.mat'],'BImap')
+formatSpec = '%s';
+[Text]=fopen([Directory 'mapping2p32.txt'])
+MappingE = textscan(Text,formatSpec,...
+    'Delimiter', '\n', ...
+    'CollectOutput', true)
+
+[ALLdata.Xte ALLdata.Yte ALLdata.isBad]=epoch_EEG_struct(EEG,152,-12,Artefacts)
+toc
+%% prepare data
+close all
+Subjects=1;
+ChosenMap=3;
+
+X=ALLdata.Xte{Subjects};
+Y=ALLdata.Yte{Subjects};
+Map=size(X,1)/2;
+Mapping=BImap{ChosenMap};
+MappingName= MappingE{1}(BImap{ChosenMap})
+NoArte=~ALLdata.isBad{Subjects};%index of epochs without artifacts
+[Xtraining Ytraining Xtest Ytest RND]=Generate_Training_Test_Set(X([Mapping Mapping+Map],:,NoArte),Y(NoArte),0.5,[],[],0);
+
+%% test Joint CSPT
+clear X Y
+Map=size(Xtraining,1)/2;
+X=mean(Xtraining(1:Map,:,Ytraining==1),3);
+Y=mean(Xtraining(Map+1:end,:,Ytraining==1),3);
+X0=mean(Xtraining(1:Map,:,Ytraining==0),3);
+Y0=mean(Xtraining(Map+1:end,:,Ytraining==0),3);
+%
+[Ux Wx Vx]=svd(squeeze(X));
+[Uy Wy Vy]=svd(squeeze(Y));
+subplot(221);plot(X');title('X');subplot(223);plot(Y');title('Y')
+
+Left=pinv((sqrt(pinv(Wx))*Ux'))*(sqrt(pinv(Wy))*Uy');
+Right=(Vy*sqrt(pinv(Wy)))*pinv((Vx*sqrt(pinv(Wx))));
+Y_x=Left*Y*Right;
+subplot(222);plot(X');title('X');subplot(224);plot(Y_x');
+error=mean(mean((X-Y_x).^2))
+title(['Y_x, MSE=' num2str(error)])
+
+figure
+subplot(221);plot(X0');title('X0');subplot(223);plot(Y0');title('Y0')
+Y0_x=Left*Y0*Right;
+
+subplot(222);plot(X0');title('X0');subplot(224);plot(Y0_x');
+error=mean(mean((X0-Y0_x).^2))
+title(['Y0_x, MSE=' num2str(error)])
+
+clear X Y
+Map=size(Xtraining,1)/2;
+X=mean(Xtest(1:Map,:,Ytest==1),3);
+Y=mean(Xtest(Map+1:end,:,Ytest==1),3);
+X0=mean(Xtest(1:Map,:,Ytest==0),3);
+Y0=mean(Xtest(Map+1:end,:,Ytest==0),3);
+figure
+subplot(221);plot(X');title('X');subplot(223);plot(Y');title('Y')
+Y_x=Left*Y*Right;
+subplot(222);plot(X');title('X');subplot(224);plot(Y_x');
+error=mean(mean((X-Y_x).^2))
+title(['Y_x, MSE=' num2str(error)])
+
+figure
+subplot(221);plot(X0');title('X0');subplot(223);plot(Y0');title('Y0')
+Y0_x=Left*Y0*Right;
+
+subplot(222);plot(X0');title('X0');subplot(224);plot(Y0_x');
+error=mean(mean((X0-Y0_x).^2))
+title(['Y0_x, MSE=' num2str(error)])
+%
+figure
+subplot(211)
+for Col=1:2
+    if Col==2
+        subplot(212)
+        for N=1:length(Ytraining)
+            Xtraining(Map+1:end,:,N)=Left*Xtraining(Map+1:end,:,N)*Right;
+        end
+        for N=1:length(Ytest)
+            Xtest(Map+1:end,:,N)=Left*Xtest(Map+1:end,:,N)*Right;
+        end
+    end
+    [COVtr, P1] = covariances_p300_hyper(Xtraining(Map+1:end,:,:),Ytraining,1,'noP1');
+    COVte = covariances_p300_hyper(Xtest(Map+1:end,:,:),P1,1,'noP1');
+    %              plot(P1')
+    %%% Classification par MDM riemannienne
+    [Yestimated, distances,C] = mdm(COVte,COVtr,Ytraining);
+    surf(C{1})
+    Perfclassif=length(find(Yestimated==Ytest))/length(Ytest);
+    disp(['Performance classification using closest reference :' num2str(Perfclassif) '%']);
+    
+    % matrice de confusion
+    disp('matrice de confusion');
+    disp(confusionmat(Ytest,Yestimated));
+    
+    % courbe roc visualisée
+    %{
+        scores = -diff(distances')';
+        [TPR,FPR,TH] =roc(Ytest',scores');
+        % Area under curve (higer is better, max=1);
+        [X,Y,~,AUC,OPTROCPT] = perfcurve(Ytest',scores',1);
+        AUC
+        figure;plot(X,Y);
+        xlabel('False positive rate'); ylabel('True positive rate')
+        title('ROC for classification by logistic regression')
+    %}
+    
+    % courbe roc sauvergardée
+    scores = -diff(distances')';
+    [X,Y,~,AUC(Col),OPTROCPT] = perfcurve(Ytest',scores',1);
+    disp(['Area Under Curve : ' num2str(AUC(Col))]);
+    %figure;f1=plotroc(Ytest',scores');
+    %legend('random',cat(2,allcombi{Col,:}))
+    text(0.5,0.5,['AUC=' num2str(AUC(Col),4)],'FontSize',12)
+    %saveas(f1,[FigureDirec 'ROC' cat(2,allcombi{Col,:}) 'trial' num2str(Trial+1) '.jpeg'])
+    %close
+end
+%% Preparation to bilinear common pattern (common spatio-temporal pattern CSTP)
+close all
+%%%%%%%%%%%%%%%%%% DATA %%%%%%%%%%%%%%%%%%%%%%
+Map=size(Xtraining,1)/2;
+X=Xtraining(1:Map,:,:);
+%X=Xtraining(Map+1:end,:,:)
+Y=Ytraining;
+
+%%%%%%%%%%%%%%% Algo PARAMETERS %%%%%%%%%%%%%%%%%%%%%%
+Fs=128;
+reducP=10
+eigWhite=1:13;
+eigV=1:8
+Weight1=0
+Weight2=1
+
+Cs_bar=mean(X(:,:,Y==1),3);
+Ct_bar=mean(X(:,:,Y==1),3);
+
+%PLOT PARAMETERS
+Scale=8;
+fs=128;
+LABELS=flipud(MappingName);
+%plotEEG(signal,Scale,fs,LABELS)
+%%%%%%%%%%%%%%%%%% ADD ARTEFACTS %%%%%%%%%%%%%%%%%%%%%%
+Artefact=zeros(size(X));
+%Artefact(6,80:100,11)=1000;
+Artefact(8,80:100,101)=1000;
+%Artefact(1,8:100,26)=1000;
+%Artefact(7,10:30,4)=1000;
+X=X+Artefact;
+
+%%%%%%%%%%%%%%%% COMPUTE WEIGHTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if Weight1==1
+    figure
+    P{1}=mean(X(:,:,Y==0),3);
+    subplot(141);plotEEG(P{1},Scale,fs,LABELS);title('X^{bar}_0')
+    P{2}=mean(X(:,:,Y==1),3);
+    subplot(142);plotEEG(P{2},Scale,fs,LABELS);title('X^{bar}_1')
+    
+    for k=1:length(Y)
+        Xother=X(:,:,[1:k-1 k+1:end]);
+        Yother=Y([1:k-1 k+1:end]);
+        Pother=mean(Xother(:,:,Yother==Y(k)),3);
+        SNR(k)=norm(Pother,'fro')/...
+            norm(X(:,:,k)-Pother,'fro');
+    end
+    Ratio=sum(SNR)/length(Y);
+    for k=1:length(Y)
+        X(:,:,k)=X(:,:,k)*SNR(k)/Ratio;
+    end
+    P{1}=mean(X(:,:,Y==0),3);
+    P{2}=mean(X(:,:,Y==1),3);
+    P{1}=mean(X(:,:,Y==0),3);
+    subplot(143);plotEEG(P{1},Scale,fs,LABELS);title('X^{bar}_0 weight')
+    P{2}=mean(X(:,:,Y==1),3);
+    subplot(144);plotEEG(P{2},Scale,fs,LABELS);title('X^{bar}_1 weight')
+    figure;plot(log(SNR))
+end
+
+
+%% %%%%%%%%%%%%%% START COMPUTING CSPT (script) %%%%%%%%%%%%%%%%%%%%%%%%
+P{1}=mean(X(:,:,Y==0),3);
+P{2}=mean(X(:,:,Y==1),3);
+
+%[Cs_k, P1] = covariances_p300_hyper(X,Y,1,'noP1');
+%[Ct_k, P1] = covariances_p300_hyper(permute(X,[2 1 3]),Y,1,'noP1');
+for k=1:size(X,3)
+    Cs_k(:,:,k)=X(:,:,k)*X(:,:,k)'/size(X,1);
+    Ct_k(:,:,k)=X(:,:,k)'*X(:,:,k)/size(X,2);
+end
+Cs=mean(cat(3,mean(Cs_k(:,:,Y==0),3),mean(Cs_k(:,:,Y==1),3)),3);
+Ct=mean(cat(3,mean(Ct_k(:,:,Y==0),3),mean(Ct_k(:,:,Y==1),3)),3);
+
+[Ux Ws]=eig(Cs);
+norm(Cs-Ux*Ws*Ux','fro')
+[Vx Wt]=eig(Ct);
+norm(Ct-Vx*Wt*Vx','fro')
+[Ws,ind] = sort(diag(Ws),'descend');
+if any(Ws<=0); disp('Warning negative SPATIAL eigenvalue(s)'); end
+Ux = Ux(:,ind);
+Ux = Ux(:,eigWhite)
+[Wt,ind] = sort(diag(Wt),'descend');
+if any(Wt<=0); disp('Warning negative TEMPORAL eigenvalue(s)'); end
+
+
+Vx = Vx(:,ind);
+Vx = Vx(:,eigWhite)
+Fs = (sqrt(pinv(diag(Ws(eigWhite)))) * Ux')'; cond(Fs) ;
+Ft =(sqrt(inv(diag(Wt(eigWhite)))) * Vx')';cond(Ft)
+Gs =Ux*sqrt((diag(Ws(eigWhite)))) ;cond(Gs)
+Gt =Vx*sqrt((diag(Wt(eigWhite)))) ;cond(Gt)
+
+disp('Fs_T*Gs')
+diag(Fs'*Gs)
+disp('Ft_T*Gt')
+diag(Ft'*Gt)
+
+%plot normal P300 and power of covariance matrixes
+%{
+figure
+subplot(231);imagesc(log(abs(Cs)));title('Cs')
+  subplot(232);  imagesc(log(abs(Ct)));title('Ct')
+    subplot(233);  imagesc(log(abs(Fs)));title('Fs')
+
+      subplot(234);  imagesc(log(abs(Ft)));title('Ft')
+  subplot(235);  imagesc(log(abs(Gs)));title('Gs')
+
+    subplot(236);  imagesc(log(abs(Gt)));title('Gt')
+
+figure;subplot(141)
+plotEEG(P{1},Scale,fs,LABELS);title('X^{bar}_0')
+subplot(142)
+plotEEG(P{2},Scale,fs,LABELS);title('X^{bar}_1')
+%}
+
+%compute CSPT
+for z=1:length(P)
+    Z{z}=Fs'*P{z}*Ft;
+    [Uz{z},Wz{z},Vz{z}]=svd((Z{z}));
+    disp('UzT*Z*Vz')
+    Uz{z}'*Z{z}*Vz{z}
+    Uz_r{z}=Uz{z}(:,eigV);
+    Vz_r{z}=Vz{z}(:,eigV);
+    
+    Uz_r{z}'*Uz{z}*Wz{z}*Vz{z}'*Vz_r{z}
+    
+    
+    Bs{z}=(Uz_r{z}'*Fs')';
+    Bt{z}=(Vz_r{z}'*Ft')';
+    As{z}=Gs*Uz{z}(:,eigV);
+    At{z}=Gt*Vz{z}(:,eigV);
+    %check
+    disp('BsT*Cs*Bs')
+    Bs{z}'*Cs*Bs{z} %I
+    disp('BtT*Ct*Bt')
+    
+    Bt{z}'*Ct*Bt{z} %I
+    Bs{z}'*P{z}*Bt{z} %W
+    X_hat{z}=As{z}*Bs{z}'*P{z}*Bt{z}*At{z}'
+    
+end
+Ft*Vz{z}(:,eigV)
+Uz{z}'*Fs'*P{z}*Ft*Vz{z}
+
+subplot(143)
+plotEEG(X_hat{1},Scale,fs,LABELS);title('X^{bar hat}_0 (CSPT)')
+subplot(144)
+plotEEG(X_hat{2},Scale,fs,LABELS);title('X^{bar hat}_1 (CSPT)')
+eegplot([P{1} P{2} X_hat{1} X_hat{2}],'srate',128)
+
+%%%%%%%%%%%%%%%% END COMPUTING CSPT %%%%%%%%%%%%%%%%%%%%%%%%
+
+%% %%%%%%%%%%%%%% START COMPUTING CSPT (function) %%%%%%%%%%%%%%%%%%%%%%%%
+clear Bt Bs At As
+finalWindow=128;
+finalInd=size(X,2)-finalWindow;
+Pmean1TA=mean(X(:,:,Y==1),3);
+Pmean1NT=mean(X(:,:,Y==0),3);
+[Bs Bt As At]=CSPT(X(:,(1:128)+12,:),Y);
+for k=1:size(X,3)
+    Xhatk(:,:,k)=As{2}*Bs{2}'*X(:,(1:128)+12,k)*Bt{2}*At{2}';
+end
+Pmean2TA=mean(Xhatk(:,:,Y==1),3);
+Pmean2NT=mean(Xhatk(:,:,Y==0),3);
+figure
+subplot(141);plotEEG(Pmean1TA,Scale,fs,LABELS);title('X^{bar}_1')
+subplot(142);plotEEG(Pmean1NT,Scale,fs,LABELS);title('X^{bar}_0')
+subplot(143);plotEEG(Pmean2TA,Scale,fs,LABELS);title('X^{bar hat}_1')
+subplot(144);plotEEG(Pmean2NT,Scale,fs,LABELS);title('X^{bar hat}_0')
+%%
+%%%%%%%%%%%%%%%% COMPUTE LATENCY CORRECTION %%%%%%%%%%%%%%%%%
+close all
+clear VisualLatency Convergence iterations Convergence indMAX LatencySNR Psaved LatencyCorrection P300 Xall
+Xall=X(:,:,Y==1);
+nbLat=5;
+LatencyCorrection=zeros(1,size(Xall,3))+13;%initialization latency
+
+XbarPLOT=figure;
+for iter=1:nbLat
+    iter
+    for k=1:size(Xall,3)
+        Xwin(:,:,k)=Xall(:,(1:finalWindow)+LatencyCorrection(k)-1,k);
+    end
+    
+    
+    [Bs{iter} Bt{iter} As{iter} At{iter}]=CSTP(Xwin(:,:,Y==1),Y(Y==1));
+    if iter>1
+        Conv(1,iter)=norm(Bs{iter}-Bs{iter-1},'fro');
+        Conv(2,iter)=norm(Bt{iter}-Bt{iter-1},'fro');
+    end
+    %Bs=Bs{:};Bt=Bt{:};As=As{:};At=At{:};
+    %show the latency on power for Pz
+    
+    for k=1:size(Xall,3)
+        for lat=1:finalInd
+            
+            Xother=Xwin(:,:,[1:k-1 k+1:end]);
+            Pother=mean(Xother,3); %optimizate P300 estimation
+            %Ybar=As{2}*Bs{2}'*Pother*Bt{2}*At{2}';
+            Ybar=Bs{iter}'*Pother*Bt{iter};
+            Xbar=As{iter}*Ybar*At{iter}';
+            %Yk=As{2}*Bs{2}'*X(:,lat:lat+finalWindow-1,k)*Bt{2}*At{2}';
+            Yk=Bs{iter}'*Xall(:,lat:lat+finalWindow-1,k)*Bt{iter};
+            Xk=As{iter}*Yk*At{iter}';
+            Crit_SNR_fro(k,lat)=norm(Ybar,'fro')/norm(Yk-Ybar,'fro');
+            Crit_Trace(k,lat)=trace(Xbar'*Xk);
+            if lat==13 %compute for delay=0 some criteria
+                Crit_Sum_XCORR(k,:)=xcorr(sum(Xk,1),sum(Xbar,1),12);
+                Crit_Sum_SPECTRA(k,:)=sum(Xk.^2,1);
+            end
+        end
+        %MIN=min(LatencySNR(k,:));
+        [MAX indMAX(k)]=max(Crit_Trace(k,:));
+        %LatencySNR(k,:)=(LatencySNR(k,:)-MIN)/(MAX-MIN);
+        %LatencySmooth(k,:)=conv(LatencySNR(k,:),window(@hamming,12),'same');
+        %[MAX indMAXsmooth(k)]=max(LatencySmooth(k,:));
+    end
+    figure;subplot(211);imagesc(Crit_Sum_SPECTRA)
+    subplot(212);imagesc(log(LatencySmooth.^2))
+    %{
+VisualLatency(VisualLatency<0)=0.1;
+figure;subplot(211);imagesc(log(VisualLatency(Y==0,:).^2));title('No Target Delay')
+subplot(212);imagesc(log(VisualLatency(Y==1,:).^2));title('Target Delay')
+LatencyCorrection=indMAX;
+Psaved{iterations}=Ybar;
+P300{iterations}=As{2}*Ybar*At{2}';
+    %}
+end
+%%
+if iterations>1
+    Convergence(iterations)=norm(Psaved{iterations}-Psaved{iterations-1},'fro')
+end
+
+figure
+Scale=3
+P{1}=mean(X(:,:,Y==0),3);
+subplot(151);plotEEG(P300{1},Scale,fs,LABELS);title('X^{bar}_1')
+P{2}=mean(X(:,:,Y==1),3);
+subplot(152);plotEEG(P300{2},Scale,fs,LABELS);title('X^{bar}_2')
+
+subplot(153);plotEEG(P300{3},Scale,fs,LABELS);title('X^{bar}_3')
+P{2}=mean(X(:,:,Y==1),3);
+subplot(154);plotEEG(P300{4},Scale,fs,LABELS);title('X^{bar}_4')
+subplot(155);plotEEG(P300{5},Scale,fs,LABELS);title('X^{bar}_5')
+
+%%%%%%%%%%%%%%%% END LATENCY CORRECTION %%%%%%%%%%%%%%%%%
+%%
+%%%%%%%%%%%%%%%% COMPUTE WEIGHTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if Weight2==1
+    figure
+    P{1}=mean(X(:,:,Y==0),3);
+    subplot(141);plotEEG(P{1},Scale,fs,LABELS);title('X^{bar}_0')
+    P{2}=mean(X(:,:,Y==1),3);
+    subplot(142);plotEEG(P{2},Scale,fs,LABELS);title('X^{bar}_1')
+    
+    for k=1:length(Y)
+        Xother=X(:,:,[1:k-1 k+1:end]);
+        Yother=Y([1:k-1 k+1:end]);
+        Pother=As{Y(k)+1}*Bs{Y(k)+1}'*X(:,:,k)*Bt{Y(k)+1}*At{Y(k)+1}';
+        SNR_hat(k)=norm(Pother,'fro')/...
+            norm(X(:,:,k)-Pother,'fro');
+    end
+    Ratio=sum(SNR_hat)/length(Y);
+    for k=1:length(Y)
+        X(:,:,k)=X(:,:,k)*SNR_hat(k)/Ratio;
+    end
+    P{1}=mean(X(:,:,Y==0),3);
+    P{2}=mean(X(:,:,Y==1),3);
+    P{1}=mean(X(:,:,Y==0),3);
+    
+    subplot(143);plotEEG(P{1},Scale,fs,LABELS);title('X^{bar}_0 weight')
+    P{2}=mean(X(:,:,Y==1),3);
+    subplot(144);plotEEG(P{2},Scale,fs,LABELS);title('X^{bar}_1 weight')
+    figure;plot(log(SNR_hat))
+end
+%Vz'*Gt'*Ft*V
+
+%%
+% generate random data - 32 channels
+close all
+figure;subplot(121)
+NbSamples=1024
+NbDim=8
+t = linspace(0,2,NbSamples);
+sig = rand(NbDim,NbSamples);
+
+% calculate shift
+mi = min(sig,[],2);
+ma = max(sig,[],2);
+shift = cumsum([0; abs(ma(1:end-1))+abs(mi(2:end))]);
+shift = repmat(shift,1,NbSamples);
+
+%plot 'eeg' data
+plot(t,sig+shift)
+
+% edit axes
+set(gca,'ytick',mean(sig+shift,2),'yticklabel',1:NbDim)
+grid on
+ylim([mi(1) max(max(shift+sig))])
+
+
+%%
+
+clear all
+close all
+
+N=3
+Nb=128
+t=1:128;
+fs=10;
+X=[];Y=[];P1=[];P2=[];
+for i=1:N
+    P1=cat(1,P1,2*sin(i*t/fs));
+    P2=cat(1,P2,4*sin(i*t/fs+pi/1));
+    X=cat(1,X,2*sin(i*t/fs)+randn(1,Nb));
+    Y=cat(1,Y,4*sin(i*t/fs)+randn(1,Nb));
+end
+figure;subplot(221);plot(X');subplot(222);plot(Y');subplot(223);plot(P1');subplot(224);plot(P2')
+
+eig(cov([P1 ; X]'))
+
+
+[Ux Wx Vx]=svd(squeeze(P1));
+[Uy Wy Vy]=svd(squeeze(P2));
+
+Left=pinv((sqrt(pinv(Wx))*Ux'))*(sqrt(pinv(Wy))*Uy');
+Right=(Vy*sqrt(pinv(Wy)))*pinv((Vx*sqrt(pinv(Wx))));
+
+eig(cov([Left*P2*Right ; Left*Y*Right]'))
+
+figure;subplot(221);plot(X');subplot(222);plot((Left*Y*Right)');subplot(223);plot(P1');subplot(224);plot((Left*P2*Right)')
+

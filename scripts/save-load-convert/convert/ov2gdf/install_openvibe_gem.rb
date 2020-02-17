@@ -1,0 +1,1 @@
+gem 'openvibe-launcher', '~> 0.1.2'

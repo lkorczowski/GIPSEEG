@@ -1,0 +1,1 @@
+To have sLoreta working, you need to set "LORETA_KEY_Viewer02.exe" as the default software to open .lor files.

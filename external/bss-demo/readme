@@ -1,0 +1,11 @@
+To launch this demo simply type bliss
+Users of matlab-5 must type however bliss5. The reason is that this
+software (specifically its user interface part) was developed under
+matlab-6 and uses some functions which are not found in matlab-5.
+These functions are stored in the sub-directory matlab-6 (users of
+matlab-6 can delete this sub-directory). In spite of that, under
+matlab-5, you often get the message
+
+Bad index in cell array expansion.
+
+Such messages seem to have no effect and can be ignored.
