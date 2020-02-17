@@ -1,0 +1,159 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>gp_gen_training_test_set</title><meta name="generator" content="MATLAB 7.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-12-11"><meta name="DC.source" content="gp_gen_training_test_set.m"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">gp_gen_training_test_set</a></li><li><a href="#3">Syntaxe</a></li><li><a href="#4">Details</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [Xtr,Ytr,Xte,Yte,RND]=gp_gen_training_test_set(X,Y,ratio,RND)
+</pre><h2>gp_gen_training_test_set<a name="2"></a></h2><p>Generate two sets for cross-validation</p><h2>Syntaxe<a name="3"></a></h2><p>[Xtr,Ytr,Xte,Yte]=gp_gen_training_test_set(X,Y) [Xtr,Ytr,Xte,Yte]=gp_gen_training_test_set(X,Y,ratio) [Xtr,Ytr,Xte,Yte,RND]=gp_gen_training_test_set(X,Y,ratio,RND)</p><h2>Details<a name="4"></a></h2><p>X : epochs EEG DATA Y : epochs' label ratio : if scalar : ratio training set data 0&lt;P&lt;1 setBalance is 0 or 1) RND : is the permutation seed</p><pre class="codeinput">[Xtr, Ytr,Xte, Yte]=deal([]);
+
+<span class="keyword">if</span> nargin&lt;4 | RND==-1
+    RND=1:length(Y);
+    disp(<span class="string">'generation of training test set is chronological'</span>)
+    th=round(length(Y)*ratio);
+    Xtr=X(:,:,1:th);Ytr=Y(1:th);
+    Xte=X(:,:,th+1:end);Yte=Y(th+1:end);
+<span class="keyword">else</span>
+    <span class="keyword">if</span> size(Y,1)&lt;size(Y,2)
+        Y=Y';
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> isempty(RND)
+        RND=randperm(length(Y));
+    <span class="keyword">end</span>
+
+    <span class="comment">% randomization</span>
+    X=X(:,:,RND);
+    Y=Y(RND);
+
+    <span class="comment">%for each class, find the epochs</span>
+    labels=unique(Y);
+    Nclass=length(labels);
+    indtr=[];
+    indte=[];
+    indicesC={};threshold={};
+    <span class="keyword">for</span> c=1:Nclass
+        indicesC{c}=find(Y==labels(c));
+        threshold{c}=round(length(indicesC{c})*ratio);
+        indtr=[indtr; indicesC{c}(1:threshold{c})];
+        indte=[indte; indicesC{c}(threshold{c}+1:end)];
+    <span class="keyword">end</span>
+
+    Xtr=X(:,:,indtr);Ytr=Y(indtr);
+    Xte=X(:,:,indte);Yte=Y(indte);
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Error using gp_gen_training_test_set (line 19)
+Not enough input arguments.
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.13<br></p></div><!--
+##### SOURCE BEGIN #####
+function [Xtr,Ytr,Xte,Yte,RND]=gp_gen_training_test_set(X,Y,ratio,RND)
+%% gp_gen_training_test_set
+% Generate two sets for cross-validation
+%
+%% Syntaxe
+% [Xtr,Ytr,Xte,Yte]=gp_gen_training_test_set(X,Y)
+% [Xtr,Ytr,Xte,Yte]=gp_gen_training_test_set(X,Y,ratio)
+% [Xtr,Ytr,Xte,Yte,RND]=gp_gen_training_test_set(X,Y,ratio,RND)
+
+%% Details
+% X : epochs EEG DATA
+% Y : epochs' label
+% ratio : if scalar : ratio training set data 0<P<1
+% setBalance is 0 or 1)
+% RND : is the permutation seed
+[Xtr, Ytr,Xte, Yte]=deal([]);
+
+if nargin<4 | RND==-1
+    RND=1:length(Y);
+    disp('generation of training test set is chronological')
+    th=round(length(Y)*ratio);
+    Xtr=X(:,:,1:th);Ytr=Y(1:th);
+    Xte=X(:,:,th+1:end);Yte=Y(th+1:end);
+else
+    if size(Y,1)<size(Y,2)
+        Y=Y';
+    end
+    if isempty(RND)
+        RND=randperm(length(Y));
+    end
+    
+    % randomization
+    X=X(:,:,RND);
+    Y=Y(RND);
+    
+    %for each class, find the epochs
+    labels=unique(Y);
+    Nclass=length(labels);
+    indtr=[];
+    indte=[];
+    indicesC={};threshold={};
+    for c=1:Nclass
+        indicesC{c}=find(Y==labels(c));
+        threshold{c}=round(length(indicesC{c})*ratio);
+        indtr=[indtr; indicesC{c}(1:threshold{c})];
+        indte=[indte; indicesC{c}(threshold{c}+1:end)];
+    end
+    
+    Xtr=X(:,:,indtr);Ytr=Y(indtr);
+    Xte=X(:,:,indte);Yte=Y(indte);
+end
+##### SOURCE END #####
+--></body></html>
