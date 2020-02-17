@@ -68,31 +68,20 @@ EEG is a structure with : (GIPSEEG a.k.a LK_Toolbox)
 
 
 ACSTPoptions is a structure with
-     Epoch_size: scalar, the length of the epoch window (in samples)
-LatencyCorr_max: scalar, the maximum of samples for the latency
-                  correction. Set 0 to disable the Latency correction.
-Mask_Electrodes: vector of the selectionned electrodes. Usefull for the
-                 automatic subspace selection (BestPz) and latency
-                 correction (Latency).
-      Mask_Time: vector of the selectionned sample. Usefull for the
-                 automatic subspace selection (BestPz) and latency
-                 correction (Latency).
-MaxIterLatency*: scalar, the maximum iteration allowed to compute the
-                  latency correction. Default: 10.
-   SubspaceDim*: vector, containing all the subspace dimension (<nb electrodes)
-                 to test in descent order.
-                  By default, it is equal to (nb_channels:-1:(nb_channels/2))
-computeClassLat*: vector, containing all the class tag in which you want
-                  to compute the latency correction. By default, it
-                  computes it for all classes but it could be long (for
-                  instance you can skip the non-target).
-       Weights*: Default: true.
+- Epoch_size: scalar, the length of the epoch window (in samples)
+- LatencyCorr_max: scalar, the maximum of samples for the latency correction. Set 0 to disable the Latency correction.
+- Mask_Electrodes: vector of the selectionned electrodes. Usefull for the automatic subspace selection (BestPz) and latency correction (Latency).
+- Mask_Time: vector of the selectionned sample. Usefull for the automatic subspace selection (BestPz) and latency correction (Latency).
+- MaxIterLatency*: scalar, the maximum iteration allowed to compute the latency correction. Default: 10.
+- SubspaceDim*: vector, containing all the subspace dimension (<nb electrodes) to test in descent order. By default, it is equal to (nb_channels:-1:(nb_channels/2))
+- computeClassLat*: vector, containing all the class tag in which you want to compute the latency correction. By default, it computes it for all classes but it could be long (for instance you can skip the non-target).
+- Weights*: Default: true.
                  option1(given) [nb epochs x1] vector, containing the weights for each
                   epoch if it is computed from an external function.
                  option2 (true/false) boolean. If true (default) the ACSTP compute the
                   weight for each epoch. If false, the weights are
                   desactivated (i.e. set to 1).
-       DISPLAY*: Boolean, should the comparative result between the arithmetic ensemble
+- DISPLAY*: Boolean, should the comparative result between the arithmetic ensemble
                   average and the ACSTP should be display at the end. Default: true.
 
 ACSTPstruct is a structure with
